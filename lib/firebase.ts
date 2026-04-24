@@ -19,15 +19,22 @@ const firebaseConfig = {
 // Prevent re-initialization in dev mode (hot reload)
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-let auth, db, storage;
+const initFirebase = () => {
+  try {
+    return {
+      auth: getAuth(app),
+      db: getFirestore(app),
+      storage: getStorage(app)
+    };
+  } catch (error) {
+    console.error("Firebase services failed to initialize (likely missing/invalid env vars during build):", error);
+    return {
+      auth: null as unknown as ReturnType<typeof getAuth>,
+      db: null as unknown as ReturnType<typeof getFirestore>,
+      storage: null as unknown as ReturnType<typeof getStorage>
+    };
+  }
+};
 
-try {
-  auth = getAuth(app);
-  db = getFirestore(app);
-  storage = getStorage(app);
-} catch (error) {
-  console.error("Firebase services failed to initialize (likely missing/invalid env vars during build):", error);
-}
-
-export { auth, db, storage };
+export const { auth, db, storage } = initFirebase();
 export default app;
