@@ -19,7 +19,15 @@ const firebaseConfig = {
 // Prevent re-initialization in dev mode (hot reload)
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+let auth, db, storage;
+
+try {
+  auth = getAuth(app);
+  db = getFirestore(app);
+  storage = getStorage(app);
+} catch (error) {
+  console.error("Firebase services failed to initialize (likely missing/invalid env vars during build):", error);
+}
+
+export { auth, db, storage };
 export default app;
