@@ -1,0 +1,64 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Helper Functions ----
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // ---- Users Collection ----
+    match /users/{userId} {
+      // Anyone authenticated can read user profiles
+      allow read: if isAuthenticated();
+
+      // Users can create their own profile on registration
+      allow create: if isOwner(userId);
+
+      // Users can update their own profile; admins can update any profile
+      allow update: if isOwner(userId) || isAdmin();
+
+      // Only admins can delete user profiles
+      allow delete: if isAdmin();
+    }
+
+    // ---- Needs Collection ----
+    match /needs/{needId} {
+      // Any authenticated user can read needs
+      allow read: if isAuthenticated();
+
+      // Only admins can create, update, or delete needs
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ---- Tasks Collection ----
+    match /tasks/{taskId} {
+      // Admins can read all tasks; volunteers can read their own tasks
+      allow read: if isAdmin() ||
+        (isAuthenticated() && resource.data.volunteerId == request.auth.uid);
+
+      // Only admins can create tasks (when assigning volunteers)
+      allow create: if isAdmin();
+
+      // Volunteers can update their own tasks (accept, complete, add feedback)
+      // Admins can update any task
+      allow update: if isAdmin() ||
+        (isAuthenticated() && resource.data.volunteerId == request.auth.uid);
+
+      // Only admins can delete tasks
+      allow delete: if isAdmin();
+    }
+  }
+}
